@@ -1,0 +1,26 @@
+type Player = record { name : text; position : text; statistics : Statistics };
+type Statistics = record {
+  personalRecords : vec text;
+  assists : float64;
+  goalsScored : float64;
+};
+type Team = record {
+  id : text;
+  owner : principal;
+  name : text;
+  createdAt : nat64;
+  sportType : text;
+  updatedAt : opt nat64;
+  roster : vec Player;
+};
+type _AzleResult = variant { Ok : Team; Err : text };
+type _AzleResult_1 = variant { Ok : vec Team; Err : text };
+service : () -> {
+  addPlayerToTeam : (text, Player) -> (_AzleResult);
+  createTeam : (text, text, vec Player) -> (_AzleResult);
+  deletePlayerToTeam : (text, text) -> (_AzleResult);
+  deleteTeam : (text) -> (_AzleResult);
+  getAllTeams : () -> (_AzleResult_1) query;
+  getTeam : (text) -> (_AzleResult) query;
+  updateTeam : (text, vec Player) -> (_AzleResult);
+}
