@@ -1,6 +1,6 @@
 # Sport_Team_Managemant
 
-Welcome to your first Azle project! This example project will help you to deploy your first canister (application) to the Internet Computer (IC) decentralized cloud.
+This example project will help you to deploy your first canister (application) to the Internet Computer (IC) decentralized cloud.
 
 "Sports Team Management" app enables coaches to efficiently handle sports teams, creating, reading, updating, and deleting teams, players, and schedules. Additional features include performance tracking, communication, attendance, and reporting for better team management.
 
