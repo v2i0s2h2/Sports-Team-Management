@@ -2,7 +2,7 @@
 
 This example project will help you to deploy your first canister (application) to the Internet Computer (IC) decentralized cloud.
 
-"Sports Team Management" app enables coaches to efficiently handle sports teams, creating, reading, updating, and deleting teams, players, and schedules. Additional features include performance tracking, communication, attendance, and reporting for better team management.
+"Sports Team Management" app enables coaches to efficiently handle sports teams, creating, reading, updating, and deleting team and players. Additional features include performance tracking and reporting for better team management.
 
 You can always refer to [The Azle Book](https://demergent-labs.github.io/azle/) for more in-depth documentation.
 
