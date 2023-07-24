@@ -1,5 +1,18 @@
 // Add type declarations for imports
-import { $query, $update, Record, StableBTreeMap, Principal, Result, match, Vec, nat64, ic, Opt } from "azle";
+import {
+  $query,
+  $update,
+  Record,
+  StableBTreeMap,
+  Principal,
+  Result,
+  match,
+  Vec,
+  nat64,
+  ic,
+  Opt,
+} from "azle";
+
 import { v4 as uuidv4 } from "uuid";
 
 // Define interfaces for Team and Player
@@ -10,7 +23,7 @@ interface TeamData {
   sportType: string;
   roster: Vec<Player>;
   createdAt: nat64;
-  updatedAt: Opt<nat64>;
+  updatedAt: Date | null;
 }
 
 interface Player {
@@ -29,7 +42,7 @@ interface Statistics {
 const teamStorage = new StableBTreeMap<string, TeamData>(0, 44, 1024);
 
 // Function that allows coaches to create teams;
-$update;
+$update
 export function createTeam(
   name: string,
   sportType: string,
@@ -56,7 +69,7 @@ export function createTeam(
     sportType,
     roster,
     createdAt: ic.time(),
-    updatedAt: Opt.None,
+    updatedAt: null,
   };
 
   try {
@@ -70,7 +83,7 @@ export function createTeam(
 
 // Function to fetch a particular team;
 // returns an error message if team with id isn't found;
-$query;
+$query
 export function getTeam(id: string): Result<TeamData, string> {
   return match(teamStorage.get(id), {
     Some: (team) => Result.Ok<TeamData, string>(team),
@@ -79,7 +92,7 @@ export function getTeam(id: string): Result<TeamData, string> {
 }
 
 // Function that allows the author/coach of a team to edit the team;
-$update;
+$update
 export function updateTeam(
   id: string,
   roster: Vec<Player>
@@ -91,7 +104,7 @@ export function updateTeam(
         return Result.Err<TeamData, string>("You are not the team's coach");
       }
       team.roster = roster;
-      team.updatedAt = Opt.Some(ic.time());
+      team.updatedAt = null;
       // Update the team in the storage;
       teamStorage.insert(team.id, team);
       return Result.Ok<TeamData, string>(team);
@@ -101,34 +114,33 @@ export function updateTeam(
 }
 
 // Function that allows the author/coach of a team to delete the team;
-$update;
-export function deleteTeam(id: string): Result<TeamData, string> {
+$update
+export function deleteTeam(id: string): Result<void, string> {
   return match(teamStorage.get(id), {
     Some: (delete_team) => {
       // if caller isn't the team's owner, return an error;
       if (delete_team.owner.toString() !== ic.caller().toString()) {
-        return Result.Err<TeamData, string>("You are not the team's coach");
+        return Result.Err<void, string>("You are not the team's coach");
       }
       teamStorage.remove(id);
-      console.log(`Team with id=${id} has been deleted.`);
-      return Result.Ok<TeamData, string>(delete_team);
+      return Result.Ok<void, string>();
     },
-    None: () => Result.Err<TeamData, string>(`Cannot Delete this Team id=${id}.`),
+    None: () => Result.Err<void, string>(`Cannot Delete this Team id=${id}.`),
   });
 }
 
 // Function to fetch all teams;
-$query;
+$query
 export function getAllTeams(): Result<Vec<TeamData>, string> {
   try {
-    return Result.Ok(teamStorage.values());
+    return Result.Ok<Vec<TeamData>, string>(teamStorage.values());
   } catch (error) {
-    return Result.Err(`Failed to fetch teams: ${error}`);
+    return Result.Err<Vec<TeamData>, string>(`Failed to fetch teams: ${error}`);
   }
 }
 
 // Function that allows coaches to add a player to the team;
-$update;
+$update
 export function addPlayerToTeam(
   id: string,
   player: Player
@@ -153,7 +165,7 @@ export function addPlayerToTeam(
       const updatedTeam: TeamData = {
         ...team,
         roster: [...team.roster, newPlayer],
-        updatedAt: Opt.Some(ic.time()),
+        updatedAt: null,
       };
 
       // Update the team in the storage;
@@ -165,7 +177,7 @@ export function addPlayerToTeam(
 }
 
 // Function that allows coaches to delete a player from the team;
-$update;
+$update
 export function deletePlayerFromTeam(
   id: string,
   playerName: string
@@ -196,7 +208,7 @@ export function deletePlayerFromTeam(
       const updatedTeam: TeamData = {
         ...team,
         roster: updatedRoster,
-        updatedAt: Opt.Some(ic.time()),
+        updatedAt: null,
       };
 
       // Update the team in the storage;
@@ -211,6 +223,10 @@ export function deletePlayerFromTeam(
 globalThis.crypto = {
   //@ts-ignore
   getRandomValues: () => {
+    let array = new
+globalThis.crypto = {
+  //@ts-ignore
+  getRandomValues: () => {
     let array = new Uint8Array(32);
 
     for (let i = 0; i < array.length; i++) {
@@ -220,3 +236,25 @@ globalThis.crypto = {
     return array;
   },
 };
+
+// Continue with the rest of the code...
+
+// ... Existing code ...
+
+// Function that allows coaches to add a player to the team;
+$update
+export function addPlayerToTeam(
+  id: string,
+  player: Player
+): Result<TeamData, string> {
+  // ... Existing code ...
+}
+
+// Function that allows coaches to delete a player from the team;
+$update
+export function deletePlayerFromTeam(
+  id: string,
+  playerName: string
+): Result<TeamData, string> {
+  // ... Existing code ...
+}
