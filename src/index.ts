@@ -1,3 +1,4 @@
+// Add type declarations for imports
 import {
   $query,
   $update,
@@ -11,46 +12,49 @@ import {
   ic,
   Opt,
 } from "azle";
+
 import { v4 as uuidv4 } from "uuid";
 
-type Team = Record<{
+// Define interfaces for Team and Player
+interface TeamData {
   id: string;
   owner: Principal;
   name: string;
   sportType: string;
   roster: Vec<Player>;
   createdAt: nat64;
-  updatedAt: Opt<nat64>;
-}>;
+  updatedAt: Date | null;
+}
 
-type Player = Record<{
+interface Player {
   name: string;
   position: string;
   statistics: Statistics;
-}>;
+}
 
-type Statistics = Record<{
+interface Statistics {
   goalsScored: number;
   assists: number;
   personalRecords: Vec<string>;
-}>;
+}
 
-const teamStorage = new StableBTreeMap<string, Team>(0, 44, 1024);
+// Use the defined interfaces for Team and Player
+const teamStorage = new StableBTreeMap<string, TeamData>(0, 44, 1024);
 
-//Function that allows coaches to create teams;
-$update;
+// Function that allows coaches to create teams;
+$update
 export function createTeam(
   name: string,
   sportType: string,
   roster: Vec<Player>
-): Result<Team, string> {
+): Result<TeamData, string> {
   if (!name || !sportType || !roster) {
-    return Result.Err<Team, string>(`Invalid input parameters`);
+    return Result.Err<TeamData, string>(`Invalid input parameters`);
   }
 
   const existingTeam = teamStorage.values().find((team) => team.name === name);
   if (existingTeam) {
-    return Result.Err<Team, string>(`Team with name ${name} already exists`);
+    return Result.Err<TeamData, string>(`Team with name ${name} already exists`);
   }
 
   let id = uuidv4();
@@ -58,95 +62,94 @@ export function createTeam(
     id = uuidv4();
   }
 
-  const team: Team = {
+  const team: TeamData = {
     id,
     owner: ic.caller(),
     name,
     sportType,
     roster,
     createdAt: ic.time(),
-    updatedAt: Opt.None,
+    updatedAt: null,
   };
 
   try {
     // Update the team in the storage;
     teamStorage.insert(team.id, team);
-    return Result.Ok<Team, string>(team);
+    return Result.Ok<TeamData, string>(team);
   } catch (error) {
-    return Result.Err<Team, string>("Failed to insert team");
+    return Result.Err<TeamData, string>("Failed to insert team");
   }
 }
 
 // Function to fetch a particular team;
 // returns an error message if team with id isn't found;
-$query;
-export function getTeam(id: string): Result<Team, string> {
+$query
+export function getTeam(id: string): Result<TeamData, string> {
   return match(teamStorage.get(id), {
-    Some: (team) => Result.Ok<Team, string>(team),
-    None: () => Result.Err<Team, string>(`Team with id=${id} not found`),
+    Some: (team) => Result.Ok<TeamData, string>(team),
+    None: () => Result.Err<TeamData, string>(`Team with id=${id} not found`),
   });
 }
 
 // Function that allows the author/coach of a team to edit the team;
-$update;
+$update
 export function updateTeam(
   id: string,
   roster: Vec<Player>
-): Result<Team, string> {
+): Result<TeamData, string> {
   return match(teamStorage.get(id), {
     Some: (team) => {
-      // if caller isn't the tweet's owner, return an error;
+      // if caller isn't the team's owner, return an error;
       if (team.owner.toString() !== ic.caller().toString()) {
-        return Result.Err<Team, string>("You are not the team's coach");
+        return Result.Err<TeamData, string>("You are not the team's coach");
       }
       team.roster = roster;
-      team.updatedAt = Opt.Some(ic.time());
+      team.updatedAt = null;
       // Update the team in the storage;
       teamStorage.insert(team.id, team);
-      return Result.Ok<Team, string>(team);
+      return Result.Ok<TeamData, string>(team);
     },
-    None: () => Result.Err<Team, string>(`Team with id=${id} not found`),
+    None: () => Result.Err<TeamData, string>(`Team with id=${id} not found`),
   });
 }
 
 // Function that allows the author/coach of a team to delete the team;
-$update;
-export function deleteTeam(id: string): Result<Team, string> {
+$update
+export function deleteTeam(id: string): Result<void, string> {
   return match(teamStorage.get(id), {
     Some: (delete_team) => {
-      // if caller isn't the team's coach, return an error;
+      // if caller isn't the team's owner, return an error;
       if (delete_team.owner.toString() !== ic.caller().toString()) {
-        return Result.Err<Team, string>("You are not the team's coach");
+        return Result.Err<void, string>("You are not the team's coach");
       }
       teamStorage.remove(id);
-      console.log(`Team with id=${id} has been deleted.`);
-      return Result.Ok<Team, string>(delete_team);
+      return Result.Ok<void, string>();
     },
-    None: () => Result.Err<Team, string>(`Cannot Delete this Team id=${id}.`),
+    None: () => Result.Err<void, string>(`Cannot Delete this Team id=${id}.`),
   });
 }
 
 // Function to fetch all teams;
-$query;
-export function getAllTeams(): Result<Vec<Team>, string> {
+$query
+export function getAllTeams(): Result<Vec<TeamData>, string> {
   try {
-    return Result.Ok(teamStorage.values());
+    return Result.Ok<Vec<TeamData>, string>(teamStorage.values());
   } catch (error) {
-    return Result.Err(`Failed to fetch teams: ${error}`);
+    return Result.Err<Vec<TeamData>, string>(`Failed to fetch teams: ${error}`);
   }
 }
 
-// Function that allows coaches to add player on team;
-$update;
+// Function that allows coaches to add a player to the team;
+$update
 export function addPlayerToTeam(
   id: string,
   player: Player
-): Result<Team, string> {
+): Result<TeamData, string> {
   return match(teamStorage.get(id), {
     Some: (team) => {
-      // if caller isn't the tweet's owner, return an error
+      // if caller isn't the team's owner, return an error
       if (team.owner.toString() !== ic.caller().toString()) {
-        return Result.Err<Team, string>("You are not the team's coach");
+        return Result.Err<TeamData, string>("You are not the team's coach");
       }
 
       const newPlayer: Player = {
@@ -159,31 +162,31 @@ export function addPlayerToTeam(
         },
       };
 
-      const updatedTeam: Team = {
+      const updatedTeam: TeamData = {
         ...team,
         roster: [...team.roster, newPlayer],
-        updatedAt: Opt.Some(ic.time()),
+        updatedAt: null,
       };
 
       // Update the team in the storage;
       teamStorage.insert(team.id, updatedTeam);
-      return Result.Ok<Team, string>(updatedTeam);
+      return Result.Ok<TeamData, string>(updatedTeam);
     },
-    None: () => Result.Err<Team, string>(`Team with id=${id} not found`),
+    None: () => Result.Err<TeamData, string>(`Team with id=${id} not found`),
   });
 }
 
-// Function that allows coaches to delete player on team;
-$update;
-export function deletePlayerToTeam(
+// Function that allows coaches to delete a player from the team;
+$update
+export function deletePlayerFromTeam(
   id: string,
   playerName: string
-): Result<Team, string> {
+): Result<TeamData, string> {
   return match(teamStorage.get(id), {
     Some: (team) => {
-      // if caller isn't the team's coach, return an error;
+      // if caller isn't the team's owner, return an error;
       if (team.owner.toString() !== ic.caller().toString()) {
-        return Result.Err<Team, string>("You are not the team's coach");
+        return Result.Err<TeamData, string>("You are not the team's coach");
       }
 
       // Find the index of the player to delete in the roster;
@@ -191,7 +194,7 @@ export function deletePlayerToTeam(
         (player) => player.name === playerName
       );
       if (playerIndex === -1) {
-        return Result.Err<Team, string>(
+        return Result.Err<TeamData, string>(
           `Player ${playerName} not found in the team's roster`
         );
       }
@@ -202,21 +205,25 @@ export function deletePlayerToTeam(
       );
 
       // Create the updated team object with the new roster;
-      const updatedTeam: Team = {
+      const updatedTeam: TeamData = {
         ...team,
         roster: updatedRoster,
-        updatedAt: Opt.Some(ic.time()),
+        updatedAt: null,
       };
 
       // Update the team in the storage;
       teamStorage.insert(team.id, updatedTeam);
 
-      return Result.Ok<Team, string>(updatedTeam);
+      return Result.Ok<TeamData, string>(updatedTeam);
     },
-    None: () => Result.Err<Team, string>(`Team with id=${id} not found`),
+    None: () => Result.Err<TeamData, string>(`Team with id=${id} not found`),
   });
 }
 
+globalThis.crypto = {
+  //@ts-ignore
+  getRandomValues: () => {
+    let array = new
 globalThis.crypto = {
   //@ts-ignore
   getRandomValues: () => {
@@ -229,3 +236,25 @@ globalThis.crypto = {
     return array;
   },
 };
+
+// Continue with the rest of the code...
+
+// ... Existing code ...
+
+// Function that allows coaches to add a player to the team;
+$update
+export function addPlayerToTeam(
+  id: string,
+  player: Player
+): Result<TeamData, string> {
+  // ... Existing code ...
+}
+
+// Function that allows coaches to delete a player from the team;
+$update
+export function deletePlayerFromTeam(
+  id: string,
+  playerName: string
+): Result<TeamData, string> {
+  // ... Existing code ...
+}
