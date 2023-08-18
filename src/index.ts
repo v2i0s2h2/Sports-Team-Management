@@ -23,10 +23,21 @@ type Team = Record<{
   updatedAt: Opt<nat64>;
 }>;
 
+type TeamPayload = Record<{
+  name: string;
+  sportType: string;
+  roster: Vec<Player>;
+}>;
+
 type Player = Record<{
   name: string;
   position: string;
   statistics: Statistics;
+}>;
+
+type playerPayload = Record<{
+  id: string;
+  player: Player;
 }>;
 
 type Statistics = Record<{
@@ -35,41 +46,39 @@ type Statistics = Record<{
   personalRecords: Vec<string>;
 }>;
 
-const teamStorage = new StableBTreeMap<string, Team>(0, 44, 1024);
+const teamStorage = new StableBTreeMap<string, Team>(0, 440, 1024);
 
 //Function that allows coaches to create teams;
 $update;
-export function createTeam(
-  name: string,
-  sportType: string,
-  roster: Vec<Player>
-): Result<Team, string> {
-  if (!name || !sportType || !roster) {
-    return Result.Err<Team, string>(`Invalid input parameters`);
+export function createTeam(payload: TeamPayload): Result<Team, string> {
+  // Validate the payload before processing it
+  if (!payload.name || !payload.sportType || !payload.roster) {
+    return Result.Err<Team, string>("Invalid payload");
   }
 
-  const existingTeam = teamStorage.values().find((team) => team.name === name);
+  const existingTeam = teamStorage
+    .values()
+    .find((team) => team.name === payload.name);
   if (existingTeam) {
-    return Result.Err<Team, string>(`Team with name ${name} already exists`);
+    return Result.Err<Team, string>(
+      `Team with name ${payload.name} already exists`
+    );
   }
 
   let id = uuidv4();
-  while (teamStorage.get(id)) {
-    id = uuidv4();
-  }
 
   const team: Team = {
     id,
     owner: ic.caller(),
-    name,
-    sportType,
-    roster,
+    name: payload.name,
+    sportType: payload.sportType,
+    roster: payload.roster,
     createdAt: ic.time(),
     updatedAt: Opt.None,
   };
 
   try {
-    // Update the team in the storage;
+    // Update the team in the teamStorage;
     teamStorage.insert(team.id, team);
     return Result.Ok<Team, string>(team);
   } catch (error) {
@@ -138,11 +147,8 @@ export function getAllTeams(): Result<Vec<Team>, string> {
 
 // Function that allows coaches to add player on team;
 $update;
-export function addPlayerToTeam(
-  id: string,
-  player: Player
-): Result<Team, string> {
-  return match(teamStorage.get(id), {
+export function addPlayerToTeam(payload: playerPayload): Result<Team, string> {
+  return match(teamStorage.get(payload.id), {
     Some: (team) => {
       // if caller isn't the tweet's owner, return an error
       if (team.owner.toString() !== ic.caller().toString()) {
@@ -150,12 +156,12 @@ export function addPlayerToTeam(
       }
 
       const newPlayer: Player = {
-        name: player.name,
-        position: player.position,
+        name: payload.player.name,
+        position: payload.player.position,
         statistics: {
-          goalsScored: player.statistics.goalsScored,
-          assists: player.statistics.assists,
-          personalRecords: player.statistics.personalRecords,
+          goalsScored: payload.player.statistics.goalsScored,
+          assists: payload.player.statistics.assists,
+          personalRecords: payload.player.statistics.personalRecords,
         },
       };
 
@@ -165,11 +171,12 @@ export function addPlayerToTeam(
         updatedAt: Opt.Some(ic.time()),
       };
 
-      // Update the team in the storage;
+      // Update the team in the teamStorage;
       teamStorage.insert(team.id, updatedTeam);
       return Result.Ok<Team, string>(updatedTeam);
     },
-    None: () => Result.Err<Team, string>(`Team with id=${id} not found`),
+    None: () =>
+      Result.Err<Team, string>(`Team with id=${payload.id} not found`),
   });
 }
 
