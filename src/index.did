@@ -13,11 +13,17 @@ type Team = record {
   updatedAt : opt nat64;
   roster : vec Player;
 };
+type TeamPayload = record {
+  name : text;
+  sportType : text;
+  roster : vec Player;
+};
 type _AzleResult = variant { Ok : Team; Err : text };
 type _AzleResult_1 = variant { Ok : vec Team; Err : text };
+type playerPayload = record { id : text; player : Player };
 service : () -> {
-  addPlayerToTeam : (text, Player) -> (_AzleResult);
-  createTeam : (text, text, vec Player) -> (_AzleResult);
+  addPlayerToTeam : (playerPayload) -> (_AzleResult);
+  createTeam : (TeamPayload) -> (_AzleResult);
   deletePlayerToTeam : (text, text) -> (_AzleResult);
   deleteTeam : (text) -> (_AzleResult);
   getAllTeams : () -> (_AzleResult_1) query;
